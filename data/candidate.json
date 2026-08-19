@@ -1,0 +1,13 @@
+{
+  "firstName": "Rahul",
+  "lastName": "Sharma",
+  "email": "rahul.sharma@example.com",
+  "phone": "+91 9000000000",
+  "location": "Bangalore",
+  "linkedin": "https://linkedin.com/in/example",
+  "github": "https://github.com/example",
+  "education": "B.E. Computer Science",
+  "experience": "Fresher",
+  "skills": ["JavaScript", "React", "Node.js", "Python"],
+  "resumePath": "./data/resume.pdf"
+}
