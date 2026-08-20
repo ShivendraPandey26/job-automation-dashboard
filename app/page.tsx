@@ -1,69 +1,167 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState, useCallback } from "react";
+import type { Job, BatchProgress } from "@/lib/types";
+import JobCard from "./components/JobCard";
+
+export default function Dashboard() {
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [applyingIds, setApplyingIds] = useState<Set<string>>(new Set());
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | null>(
+    null,
+  );
+
+  const fetchJobs = useCallback(async () => {
+    try {
+      const res = await fetch("/api/jobs");
+      if (!res.ok) throw new Error("Failed to load jobs");
+      const data = await res.json();
+      setJobs(data.jobs);
+      setError(null);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
+  // Poll individual jobs that are currently mid-automation
+  useEffect(() => {
+    if (applyingIds.size === 0) return;
+
+    const interval = setInterval(async () => {
+      await fetchJobs();
+      // Stop polling for any job that has reached a terminal state
+      setJobs((currentJobs) => {
+        setApplyingIds((prev) => {
+          const next = new Set(prev);
+          for (const id of prev) {
+            const job = currentJobs.find((j) => j.jobId === id);
+            if (
+              job &&
+              (job.status === "SCREENSHOT_CAPTURED" || job.status === "FAILED")
+            ) {
+              next.delete(id);
+            }
+          }
+          return next;
+        });
+        return currentJobs;
+      });
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [applyingIds.size, fetchJobs]);
+
+  // Poll batch progress while a batch is running
+  useEffect(() => {
+    if (!batchProgress?.running) return;
+
+    const interval = setInterval(async () => {
+      const res = await fetch("/api/applications/progress");
+      const data: BatchProgress = await res.json();
+      setBatchProgress(data);
+      await fetchJobs();
+      if (!data.running) clearInterval(interval);
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [batchProgress?.running, fetchJobs]);
+
+  async function handleApply(jobId: string) {
+    setApplyingIds((prev) => new Set(prev).add(jobId));
+    await fetch(`/api/applications/${jobId}/apply`, { method: "POST" });
+  }
+
+  async function handleApplyAll() {
+    const res = await fetch("/api/applications/apply-all", { method: "POST" });
+    if (res.status === 409) {
+      alert("A batch is already running.");
+      return;
+    }
+    setBatchProgress({
+      processed: 0,
+      total: jobs.length,
+      running: true,
+      startedAt: null,
+      finishedAt: null,
+    });
+  }
+
+  const filteredJobs = jobs.filter(
+    (job) =>
+      job.title.toLowerCase().includes(search.toLowerCase()) ||
+      job.description.toLowerCase().includes(search.toLowerCase()),
+  );
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="max-w-5xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Job Application Dashboard
+        </h1>
+        <button
+          onClick={handleApplyAll}
+          disabled={batchProgress?.running}
+          className="px-4 py-2 rounded bg-gray-900 text-white text-sm hover:bg-gray-800 disabled:opacity-50"
+        >
+          {batchProgress?.running ? "Applying to All…" : "Apply to All"}
+        </button>
+      </div>
+
+      {batchProgress?.running && (
+        <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
+          <p className="text-sm text-gray-600 mb-2">
+            Processed {batchProgress.processed} of {batchProgress.total}
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+          <div className="w-full bg-gray-100 rounded-full h-2">
+            <div
+              className="bg-gray-900 h-2 rounded-full transition-all"
+              style={{
+                width: `${batchProgress.total > 0 ? (batchProgress.processed / batchProgress.total) * 100 : 0}%`,
+              }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </div>
         </div>
-      </main>
-    </div>
+      )}
+
+      <input
+        type="text"
+        placeholder="Search jobs by title or description…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-6 text-sm"
+      />
+
+      {loading && <p className="text-gray-500">Loading jobs…</p>}
+
+      {error && (
+        <p className="text-red-600 bg-red-50 rounded p-3 text-sm">
+          Could not load jobs: {error}
+        </p>
+      )}
+
+      {!loading && !error && filteredJobs.length === 0 && (
+        <p className="text-gray-500">No jobs found.</p>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filteredJobs.map((job) => (
+          <JobCard
+            key={job.jobId}
+            job={job}
+            onApply={handleApply}
+            isApplying={applyingIds.has(job.jobId)}
+          />
+        ))}
+      </div>
+    </main>
   );
 }
