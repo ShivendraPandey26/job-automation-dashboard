@@ -26,14 +26,19 @@ export interface Job {
 
 export interface DbSchema {
     jobs: Job[];
+    batchProgress: BatchProgress;
 }
-
-// ---- DB setup ----
 
 const defaultData: DbSchema = {
     jobs: [],
+    batchProgress: {
+        processed: 0,
+        total: 0,
+        running: false,
+        startedAt: null,
+        finishedAt: null,
+    },
 };
-
 type Database = Awaited<ReturnType<typeof JSONFilePreset<DbSchema>>>;
 
 let dbInstance: Database | null = null;
@@ -70,4 +75,19 @@ export function createJob(input: CreateJobInput): Job {
         screenshotPath: null,
         failureReason: null,
     };
+}
+
+export interface BatchProgress {
+    processed: number;
+    total: number;
+    running: boolean;
+    startedAt: string | null;
+    finishedAt: string | null;
+}
+
+
+export async function updateBatchProgress(fields: Partial<BatchProgress>): Promise<void> {
+    const db = await getDb();
+    Object.assign(db.data.batchProgress, fields);
+    await db.write();
 }
