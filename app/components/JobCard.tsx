@@ -54,7 +54,7 @@ export default function JobCard({ job, onApply, isApplying }: JobCardProps) {
 
       {/* Description (rich HTML from the job posting, entity-decoded) */}
       <div
-        className="prose prose-sm line-clamp-3 max-w-none text-sm leading-relaxed text-slate-600 prose-p:my-0 prose-a:text-indigo-600"
+        className="prose prose-sm max-w-none text-sm leading-relaxed text-slate-600 prose-p:my-0 prose-a:text-indigo-600"
         dangerouslySetInnerHTML={{ __html: description }}
       />
 
