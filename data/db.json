@@ -113,8 +113,8 @@
       "jobUrl": "https://job-boards.greenhouse.io/sigmacomputing/jobs/7812258003",
       "applicationUrl": "https://job-boards.greenhouse.io/sigmacomputing/jobs/7812258003",
       "source": "Sigma Computing",
-      "status": "SCREENSHOT_CAPTURED",
-      "screenshotPath": "screenshots/job_7812258003.png",
+      "status": "FAILED",
+      "screenshotPath": "screenshots/job_7812258003_failure.png",
       "failureReason": "CAPTCHA detected — manual intervention required"
     },
     {
@@ -128,7 +128,7 @@
       "source": "Sigma Computing",
       "status": "FAILED",
       "screenshotPath": "screenshots/job_7806577003_failure.png",
-      "failureReason": "No known fields could be matched on this form"
+      "failureReason": "CAPTCHA detected — manual intervention required"
     },
     {
       "jobId": "7809974003",
@@ -167,7 +167,7 @@
       "source": "Sigma Computing",
       "status": "FAILED",
       "screenshotPath": "screenshots/job_7784475003_failure.png",
-      "failureReason": "No known fields could be matched on this form"
+      "failureReason": "CAPTCHA detected — manual intervention required"
     },
     {
       "jobId": "7601600003",
@@ -197,10 +197,10 @@
     }
   ],
   "batchProgress": {
-    "processed": 23,
+    "processed": 15,
     "total": 15,
     "running": false,
-    "startedAt": "2026-08-20T11:19:15.237Z",
-    "finishedAt": "2026-08-20T11:20:10.737Z"
+    "startedAt": "2026-08-20T11:51:49.195Z",
+    "finishedAt": "2026-08-20T11:52:49.304Z"
   }
 }
